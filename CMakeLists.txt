@@ -60,6 +60,7 @@ pico_add_extra_outputs(nrf_rx)
 
 
 add_executable(nrf_stepper
+src/StepperMotor.cpp
 src/nrf_stepper.cpp
 )
 target_include_directories(nrf_stepper PUBLIC

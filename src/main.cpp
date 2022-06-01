@@ -1,11 +1,12 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#include "hardware/adc.h"
 #include "NRF24.h"
 
 #include<string>
 #include <stdio.h>
 
-#define TXMODE
+// #define TXMODE
 
 int main(){
 
@@ -23,27 +24,34 @@ int main(){
 
     nrf.modeTX();
 
+    adc_init();
+    adc_gpio_init(26);    
+    adc_gpio_init(27);
+
     char buffer[32];
+
+    bool led_status = false;
+
     while(1){
-        sprintf(buffer,"60");
+
+        // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
+        const float conversion_factor = 3.3f / (1 << 12);
+
+        adc_select_input(0);
+        uint16_t result_x = adc_read();
+        adc_select_input(1);
+        uint16_t result_y = adc_read();
+        // printf("Raw value: 0x%03x, voltage: %f V\n", result, result * conversion_factor);
+        sprintf(buffer, "%u %u", result_x, result_y);
         buffer[30] = 'R';
         buffer[31] = 'O'; // not a zero.
         nrf.sendMessage(buffer);
-        sleep_ms(3000);
+        printf(buffer);
+        printf("\n");
+        sleep_ms(100);
 
-        gpio_put(LED_PIN, 1);
-
-        printf("message 1\n");
-
-        sprintf(buffer,"-60");
-        buffer[30] = 'R';
-        buffer[31] = 'O'; // not a zero.
-        nrf.sendMessage(buffer);
-        sleep_ms(3000);
-
-        gpio_put(LED_PIN, 0);
-        
-        printf("message 2\n");
+        gpio_put(LED_PIN, led_status);
+        led_status = !led_status;
 
     }
 
@@ -67,7 +75,7 @@ int main(){
         }
         
         printf("Heartbeat\n");
-        sleep_ms(1000);
+        // sleep_ms(1000);
     }
 
 
