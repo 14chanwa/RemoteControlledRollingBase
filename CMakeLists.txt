@@ -61,6 +61,7 @@ pico_add_extra_outputs(nrf_rx)
 
 add_executable(nrf_stepper
 src/StepperMotor.cpp
+src/NRF24.cpp
 src/nrf_stepper.cpp
 )
 target_include_directories(nrf_stepper PUBLIC
@@ -69,6 +70,8 @@ inc
 
 target_link_libraries(nrf_stepper
 pico_stdlib
+pico_multicore
+hardware_spi
 )
 
 # pico_add_extra_outputs(nrf)
