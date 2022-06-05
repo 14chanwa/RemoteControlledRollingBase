@@ -60,16 +60,16 @@ void core1_entry() {
                     // forward
                     run_x = true;
                     run_y = true;
-                    direction_x = true;
-                    direction_y = false;
+                    direction_x = false;
+                    direction_y = true;
                 }
                 else if(result_x < 1000)
                 {
                     // backward
                     run_x = true;
                     run_y = true;
-                    direction_x = false;
-                    direction_y = true;
+                    direction_x = true;
+                    direction_y = false;
                 } else {
                     run_x = false;
                     run_y = false;
@@ -80,16 +80,16 @@ void core1_entry() {
                     // rotate left
                     run_x = true;
                     run_y = true;
-                    direction_x = false;
-                    direction_y = false;
+                    direction_x = true;
+                    direction_y = true;
                 }
                 else if(result_y < 1000)
                 {
                     // rotate right
                     run_x = true;
                     run_y = true;
-                    direction_x = true;
-                    direction_y = true;
+                    direction_x = false;
+                    direction_y = false;
                 }
             }
 
