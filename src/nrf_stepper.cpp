@@ -2,6 +2,7 @@
 #include "pico/multicore.h"
 
 #include<string>
+
 #include <stdio.h>
 #include "StepperMotor.h"
 #include "NRF24.h"
@@ -35,6 +36,7 @@ void core1_entry() {
 
     char buffer[32];
     char buffer2[32];
+
     while(1){
         if (nrf.newMessage() == 1) {
             nrf.receiveMessage(buffer);            
@@ -104,6 +106,28 @@ void core1_entry() {
 StepperMotor stepper_left(2, 3, 4, 5);
 StepperMotor stepper_right(21, 20, 19, 18);
 
+const double period_start = 1000;
+const double period_target = 700;
+const double period_step = 10;
+double period_current = 1000;
+// decrease 50 each 100 ms
+
+double time_since_last_period_update = 0;
+const double time_between_period_updates = 50;
+
+bool current_direction_x = direction_x;
+bool current_direction_y = direction_y;
+bool current_run_x = run_x;
+bool current_run_y = run_y;
+
+volatile bool timer_fired = false;
+
+int64_t alarm_callback(alarm_id_t id, void *user_data) {
+    printf("Timer %d fired!\n", (int) id);
+    timer_fired = true;
+    // Can return a value here in us to fire in the future
+    return 0;
+}
 
 int main(){
 
@@ -117,14 +141,47 @@ int main(){
     // uint8_t dir_left = 1;
     while (1) {
 
-        /* Change direction */
-        stepper_right.setDir(direction_x);
-        stepper_left.setDir(direction_y);
+        if (current_direction_x != direction_x ||
+                current_direction_y != direction_y ||
+                current_run_x != run_x ||
+                current_run_y != run_y) 
+        {
+            // Update
+            current_direction_x = direction_x;
+            current_direction_y = direction_y;
+            current_run_x = run_x;
+            current_run_y = run_y;
+
+            /* Change direction */
+            stepper_right.setDir(direction_x);
+            stepper_left.setDir(direction_y);
+
+            // Reset timers
+            period_current = period_start;
+            add_alarm_in_ms(50, alarm_callback, NULL, false);
+        }
+
+        // move motors and wait
         if (run_x)
             stepper_right.move();
         if (run_y)
             stepper_left.move();
-        sleep_us(1000); // max 100Hz (1ms)
+        sleep_us(period_current); // max 100Hz (1ms)
+
+        // update period
+        if (timer_fired) 
+        {
+            // reset timer
+            timer_fired = false;
+
+            // update period
+            if (period_current > period_target) 
+            {
+                period_current = std::max(period_current - period_step, period_target);
+                add_alarm_in_ms(50, alarm_callback, NULL, false);
+            }
+        }
+
     }
 
     return 0;
