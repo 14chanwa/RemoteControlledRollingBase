@@ -1,6 +1,7 @@
 #include "NRF24.h"
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
+#include "pico/stdlib.h"
 #include <string.h>
 
 NRF24::NRF24(spi_inst_t *port, uint16_t csn, uint16_t ce)
