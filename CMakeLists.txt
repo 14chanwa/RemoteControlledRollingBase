@@ -3,7 +3,7 @@ include(pico_sdk_import.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 
-project(nrf)
+project(nrf C CXX ASM)
 
 pico_sdk_init()
 
@@ -82,3 +82,38 @@ pico_enable_stdio_uart(nrf_stepper 0)
 
 # create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(nrf_stepper)
+
+
+
+
+
+add_executable(nrf_servo)
+
+# pico_generate_pio_header(nrf_servo ${CMAKE_CURRENT_LIST_DIR}/src/nrf_servo.pio)
+
+
+target_sources(nrf_servo PRIVATE 
+    # src/StepperMotor.cpp
+    src/NRF24.cpp
+    src/nrf_servo.cpp)
+
+target_include_directories(nrf_servo PUBLIC
+inc
+)
+
+target_link_libraries(nrf_servo
+pico_stdlib
+pico_multicore
+hardware_spi
+hardware_pwm
+# hardware_pio
+)
+
+# pico_add_extra_outputs(nrf)
+
+# enable usb output, disable uart output
+pico_enable_stdio_usb(nrf_servo 1)
+pico_enable_stdio_uart(nrf_servo 0)
+
+# create map/bin/hex/uf2 file etc.
+pico_add_extra_outputs(nrf_servo)
