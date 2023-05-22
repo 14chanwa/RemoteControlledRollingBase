@@ -27,9 +27,9 @@ uint32_t pwm_init(uint slice_num,
 }
 
 
-double stop_value = 1455.0;
-double posturn_value = 2000.0;
-double negturn_value = 1000.0;
+double stop_value = 1500.0;
+double posturn_value = 1700.0;
+double negturn_value = 1300.0;
 
 
 
@@ -88,45 +88,85 @@ void core1_entry() {
             printf(std::to_string(abs_speed_y).c_str());
             printf("\n");
 
-            if (result_y > 2048-100 & result_y < 2048+100)
+            int activation_offset = 300;
+
+            if (result_x > 2048+activation_offset)
             {
-                if (result_x > 2048+100)
-                {
-                    // forward
-                    run_x = true;
-                    run_y = true;
-                    direction_x = false;
-                    direction_y = true;
-                }
-                else if(result_x < 2048-100)
-                {
-                    // backward
-                    run_x = true;
-                    run_y = true;
-                    direction_x = true;
-                    direction_y = false;
-                } else {
-                    run_x = false;
-                    run_y = false;
-                }
-            } else {
-                if (result_y > 2048+100)
-                {
-                    // rotate left
-                    run_x = true;
-                    run_y = true;
-                    direction_x = true;
-                    direction_y = true;
-                }
-                else if(result_y < 2048-100)
-                {
-                    // rotate right
-                    run_x = true;
-                    run_y = true;
-                    direction_x = false;
-                    direction_y = false;
-                }
+                // forward
+                run_x = true;
+                run_y = false;
+                direction_x = true;
+                direction_y = true;
             }
+            else if (result_x < 2048-activation_offset)
+            {
+                // backward
+                run_x = true;
+                run_y = false;
+                direction_x = false;
+                direction_y = true;
+            }
+            else if (result_y > 2048+activation_offset)
+            {
+                // rotate left
+                run_x = false;
+                run_y = true;
+                direction_x = true;
+                direction_y = true;
+            }
+            else if (result_y < 2048-activation_offset)
+            {
+                // rotate right
+                run_x = false;
+                run_y = true;
+                direction_x = true;
+                direction_y = false;
+            }
+            else
+            {
+                run_x = false;
+                run_y = false;
+            }
+
+            // if (result_y > 2048-100 & result_y < 2048+100)
+            // {
+            //     if (result_x > 2048+100)
+            //     {
+            //         // forward
+            //         run_x = true;
+            //         run_y = true;
+            //         direction_x = false;
+            //         direction_y = true;
+            //     }
+            //     else if(result_x < 2048-100)
+            //     {
+            //         // backward
+            //         run_x = true;
+            //         run_y = true;
+            //         direction_x = true;
+            //         direction_y = false;
+            //     } else {
+            //         run_x = false;
+            //         run_y = false;
+            //     }
+            // } else {
+            //     if (result_y > 2048+100)
+            //     {
+            //         // rotate left
+            //         run_x = true;
+            //         run_y = true;
+            //         direction_x = true;
+            //         direction_y = true;
+            //     }
+            //     else if(result_y < 2048-100)
+            //     {
+            //         // rotate right
+            //         run_x = true;
+            //         run_y = true;
+            //         direction_x = false;
+            //         direction_y = false;
+            //     }
+            // }
 
         }
         
@@ -159,21 +199,53 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
     return 0;
 }
 
+class Servo
+{
+    public:
+        uint gpio_;
+
+        Servo(uint gpio);
+
+        uint getSliceNum();
+        uint getChan();
+
+        /// @brief Sends a target to the servo in us
+        /// @param target should be a target in us
+        void setTargetUs(uint32_t target);
+
+};
+
+uint Servo::getSliceNum() { return(pwm_gpio_to_slice_num(gpio_)); }
+uint Servo::getChan() { return(pwm_gpio_to_channel(gpio_)); }
+
+Servo::Servo(uint gpio) : gpio_(gpio) 
+{
+    gpio_set_function(gpio_, GPIO_FUNC_PWM);
+    pwm_set_phase_correct(getSliceNum(), false);
+
+    // frequency = 50 Hz, period = 20ms
+    // stop signal = 1500 us = 1500/20000 duty cycle
+    pwm_init(getSliceNum(), getChan(), stop_value/20000.);
+    pwm_set_enabled(getSliceNum(), true);
+}
+
+
+void Servo::setTargetUs(uint32_t target)
+{
+    double d = target / 20000.;
+    uint32_t level = static_cast<uint32_t>(round(wrap * d));
+    pwm_set_chan_level(getSliceNum(), getChan(), level);
+};
+
+
 int main(){
 
     stdio_init_all();
     multicore_launch_core1(core1_entry);
 
+    Servo rightMotor(0);
+    Servo leftMotor(1);
 
-    gpio_set_function(0, GPIO_FUNC_PWM);
-    uint slice_num = pwm_gpio_to_slice_num(0);
-    uint chan = pwm_gpio_to_channel(0);
-    pwm_set_phase_correct(slice_num, false);
-
-    // frequency = 50 Hz, period = 20ms
-    // stop signal = 1500 us = 1500/20000 duty cycle
-    pwm_init(slice_num,chan, stop_value/20000.);
-    pwm_set_enabled(slice_num, true);
 
     while (1) {
 
@@ -190,23 +262,32 @@ int main(){
             {
                 if (direction_x)
                 {
-                    double d = ((1 - abs_speed_x) * stop_value + posturn_value * abs_speed_x) / 20000.;
-                    uint32_t level = static_cast<uint32_t>(round(wrap * d));
-                    pwm_set_chan_level(slice_num, chan, level);
+                    rightMotor.setTargetUs((1 - abs_speed_x) * stop_value + posturn_value * abs_speed_x);
+                    leftMotor.setTargetUs((1 - abs_speed_x) * stop_value + negturn_value * abs_speed_x);
                 }
                 else
                 {
-                    double d = ((1 - abs_speed_x) * stop_value + negturn_value * abs_speed_x) / 20000.;
-                    uint32_t level = static_cast<uint32_t>(round(wrap * d));
-                    pwm_set_chan_level(slice_num, chan, level);
+                    rightMotor.setTargetUs((1 - abs_speed_x) * stop_value + negturn_value * abs_speed_x);
+                    leftMotor.setTargetUs((1 - abs_speed_x) * stop_value + posturn_value * abs_speed_x);
+                }   
+            }
+            else if (run_y)
+            {
+                if (direction_y)
+                {
+                    leftMotor.setTargetUs((1 - abs_speed_y) * stop_value + negturn_value * abs_speed_y);
+                    rightMotor.setTargetUs((1 - abs_speed_y) * stop_value + negturn_value * abs_speed_y);
+                }
+                else
+                {
+                    leftMotor.setTargetUs((1 - abs_speed_y) * stop_value + posturn_value * abs_speed_y);
+                    rightMotor.setTargetUs((1 - abs_speed_y) * stop_value + posturn_value * abs_speed_y);
                 }   
             }
             else
             {
-                
-                double d = stop_value/20000.;
-                uint32_t level = static_cast<uint32_t>(round(wrap * d));
-                pwm_set_chan_level(slice_num, chan, level);
+                leftMotor.setTargetUs(stop_value);
+                rightMotor.setTargetUs(stop_value);
             }
 
 
