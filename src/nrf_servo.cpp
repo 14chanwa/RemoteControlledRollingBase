@@ -33,32 +33,40 @@
 // }
 
 
+
+const uint32_t wrap = 65465;
+
 uint32_t pwm_set_freq_duty(uint slice_num,
-       uint chan,uint32_t f, double d)
+       uint chan,double d)
 {
  uint32_t clock = 125000000;
- uint32_t divider16 = clock / f / 4096 + 
-                           (clock % (f * 4096) != 0);
- if (divider16 / 16 == 0)
-    divider16 = 16;
+//  uint32_t divider16 = clock / f / 4096 + 
+//                            (clock % (f * 4096) != 0);
+//  if (divider16 / 16 == 0)
+//     divider16 = 16;
 
- uint32_t wrap = clock * 16 / divider16 / f - 1;
- pwm_set_clkdiv_int_frac(slice_num, divider16/16,
-                                     divider16 & 0xF);
- pwm_set_wrap(slice_num, wrap);
+//  uint32_t wrap = clock * 16 / divider16 / f - 1;
+ pwm_set_clkdiv_int_frac(slice_num, 38, 3);
+ pwm_set_wrap(slice_num, 65465);
 
  uint32_t level = static_cast<uint32_t>(round(wrap * d));
 
- printf("wrap: ");
- printf(std::to_string(wrap).c_str());
- printf(" -- level: ");
- printf(std::to_string(level).c_str());
- printf(" -- length: ");
- printf(std::to_string(20000.0 * level / wrap).c_str());
- printf("\n");
+//  printf("wrap: ");
+//  printf(std::to_string(wrap).c_str());
+//  printf(" -- level: ");
+//  printf(std::to_string(level).c_str());
+//  printf(" -- length: ");
+//  printf(std::to_string(20000.0 * level / wrap).c_str());
+//  printf("\n");
  pwm_set_chan_level(slice_num, chan, level);
  return wrap;
 }
+
+
+double stop_value = 1455.0;
+double posturn_value = 2000.0;
+double negturn_value = 1000.0;
+
 
 
 bool direction_x = false;
@@ -83,13 +91,13 @@ void core1_entry() {
     char buffer[32];
     char buffer2[32];
 
+    int result_x, result_y;
+
     while(1){
         if (nrf.newMessage() == 1) {
             nrf.receiveMessage(buffer);            
             gpio_put(LED_PIN, ledstatus);
             ledstatus = !ledstatus;
-
-            int result_x, result_y;
 
             sscanf(buffer, "%d %d", &result_y, &result_x);
             sprintf(buffer2, "%d %d", result_x, result_y);
@@ -188,7 +196,7 @@ int main(){
 
     // frequency = 50 Hz, period = 20ms
     // stop signal = 1500 us = 15/20000 duty cycle
-    pwm_set_freq_duty(slice_num,chan, 50, 1500./20000.);
+    pwm_set_freq_duty(slice_num,chan, stop_value/20000.);
     pwm_set_enabled(slice_num, true);
     // return 0;
 
@@ -286,18 +294,23 @@ int main(){
             {
                 if (direction_x)
                 {
-                    // level = (MIN_DC / 20000.f) * period;
-
-                    pwm_set_freq_duty(slice_num,chan, 50, 2000./20000.);
+                    double d = posturn_value/20000.;
+                    uint32_t level = static_cast<uint32_t>(round(wrap * d));
+                    pwm_set_chan_level(slice_num, chan, level);
                 }
                 else
                 {
-                    pwm_set_freq_duty(slice_num,chan, 50, 1000./20000.);
+                    double d = negturn_value/20000.;
+                    uint32_t level = static_cast<uint32_t>(round(wrap * d));
+                    pwm_set_chan_level(slice_num, chan, level);
                 }   
             }
             else
             {
-                pwm_set_freq_duty(slice_num,chan, 50, 1500./20000.);
+                
+                double d = stop_value/20000.;
+                uint32_t level = static_cast<uint32_t>(round(wrap * d));
+                pwm_set_chan_level(slice_num, chan, level);
             }
 
             // stepper_right.setDir(direction_x);
