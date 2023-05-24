@@ -10,6 +10,7 @@
 
 
 #include "hardware/clocks.h"
+// #include "Teleplot.h"
 
 
 const uint32_t wrap = 65465;
@@ -17,13 +18,13 @@ const uint32_t wrap = 65465;
 uint32_t pwm_init(uint slice_num,
        uint chan,double d)
 {
- uint32_t clock = 125000000;
- pwm_set_clkdiv_int_frac(slice_num, 38, 3);
- pwm_set_wrap(slice_num, 65465);
+    uint32_t clock = 125000000;
+    pwm_set_clkdiv_int_frac(slice_num, 38, 3);
+    pwm_set_wrap(slice_num, 65465);
 
- uint32_t level = static_cast<uint32_t>(round(wrap * d));
- pwm_set_chan_level(slice_num, chan, level);
- return wrap;
+    uint32_t level = static_cast<uint32_t>(round(wrap * d));
+    pwm_set_chan_level(slice_num, chan, level);
+    return wrap;
 }
 
 
@@ -32,6 +33,7 @@ double posturn_value = 1700.0;
 double negturn_value = 1300.0;
 
 
+const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 
 bool direction_x = false;
 bool direction_y = false;
@@ -48,16 +50,11 @@ double compute_speed(int reading)
 bool run_x = false;
 bool run_y = false;
 
+NRF24 nrf(spi0, 2, 3, 4, 5, 6);
 
 void core1_entry() {
 
-    const uint LED_PIN = PICO_DEFAULT_LED_PIN;
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
-    NRF24 nrf(spi1, 9, 8);
-    nrf.config();
-    nrf.modeRX();
+    printf("Core1 entry\n");
 
     bool ledstatus = false;
 
@@ -171,7 +168,7 @@ void core1_entry() {
         }
         
         // printf("Heartbeat\n");
-        // sleep_ms(1000);
+        sleep_us(10);
     }
 }
 
@@ -241,13 +238,39 @@ void Servo::setTargetUs(uint32_t target)
 int main(){
 
     stdio_init_all();
+
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    nrf.init();
+    nrf.config();
+    nrf.modeRX();
+
+    printf("Core0 entry\n");
+
     multicore_launch_core1(core1_entry);
 
-    Servo rightMotor(0);
-    Servo leftMotor(1);
+    Servo rightMotor(19);
+    Servo leftMotor(18);
+
+    // bool ledstatus = false;
+    // const uint LED_PIN = PICO_DEFAULT_LED_PIN;
+    // gpio_init(LED_PIN);
+    // gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    // int count = 0;
 
 
     while (1) {
+        // printf("iter\n");
+
+            // count++;
+            // if (count >= 100)
+            // {
+            //     gpio_put(LED_PIN, ledstatus);
+            //     ledstatus = !ledstatus;
+            //     count = 0;
+
+            // }
 
 
             // Update

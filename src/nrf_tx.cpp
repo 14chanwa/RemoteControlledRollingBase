@@ -14,7 +14,7 @@ int main(){
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    NRF24 nrf(spi1, 9, 8);
+    NRF24 nrf(spi1, 10, 11, 12, 9, 8);
     nrf.config();
 
     nrf.modeTX();

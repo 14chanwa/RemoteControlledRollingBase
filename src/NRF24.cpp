@@ -2,18 +2,36 @@
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
+#include "pico/binary_info.h"
 #include <string.h>
 
-NRF24::NRF24(spi_inst_t *port, uint16_t csn, uint16_t ce)
+NRF24::NRF24(
+    spi_inst_t *port, 
+    uint16_t sck,
+    uint16_t tx,
+    uint16_t rx,
+    uint16_t csn, 
+    uint16_t ce
+)
 {
     this->port = port;
+    this->sck = sck;
+    this->tx = tx;
+    this->rx = rx;
     this->csn = csn;
     this->ce = ce;
+}
 
-    spi_init(this->port, 1000000 );
-    gpio_set_function(10, GPIO_FUNC_SPI);
-    gpio_set_function(11, GPIO_FUNC_SPI);
-    gpio_set_function(12, GPIO_FUNC_SPI);
+NRF24::~NRF24()
+{
+}
+
+void NRF24::init()
+{
+    spi_init(port, 1000000 );
+    gpio_set_function(sck, GPIO_FUNC_SPI);
+    gpio_set_function(tx, GPIO_FUNC_SPI);
+    gpio_set_function(rx, GPIO_FUNC_SPI);
 
     gpio_init(csn);
     gpio_init(ce);
@@ -23,11 +41,6 @@ NRF24::NRF24(spi_inst_t *port, uint16_t csn, uint16_t ce)
 
     ceLow();
     csnHigh();
-
-}
-
-NRF24::~NRF24()
-{
 }
 
 uint8_t NRF24::readReg(uint8_t reg){

@@ -8,6 +8,9 @@ class NRF24
 {
 private: // Vars.
     spi_inst_t *port;
+    uint16_t sck;
+    uint16_t tx;
+    uint16_t rx;   
     uint16_t csn;
     uint16_t ce;
 
@@ -24,6 +27,7 @@ public: /// Funcs.
     void writeReg( uint8_t reg, uint8_t data);
     void writeReg( uint8_t reg, uint8_t *data, uint8_t size);
 
+    void init();
     void config();
 
     void modeTX();
@@ -39,7 +43,14 @@ public: /// Funcs.
     void setTXName(char *name);
 
 public:
-    NRF24(spi_inst_t *port, uint16_t csn, uint16_t ce);
+    NRF24(
+        spi_inst_t *port, 
+        uint16_t sck,
+        uint16_t tx,
+        uint16_t rx,   
+        uint16_t csn, 
+        uint16_t ce
+    );
     ~NRF24();
 };
 

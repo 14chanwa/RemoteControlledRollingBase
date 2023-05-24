@@ -7,6 +7,11 @@ project(nrf C CXX ASM)
 
 pico_sdk_init()
 
+add_compile_options(-Wall
+        -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
+        -Wno-unused-function # we have some for the docs that aren't called
+        -Wno-maybe-uninitialized
+        )
 
 add_executable(nrf_tx
 src/nrf_tx.cpp
@@ -112,8 +117,8 @@ hardware_pwm
 # pico_add_extra_outputs(nrf)
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(nrf_servo 1)
-pico_enable_stdio_uart(nrf_servo 0)
+pico_enable_stdio_usb(nrf_servo 0)
+pico_enable_stdio_uart(nrf_servo 1)
 
 # create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(nrf_servo)
